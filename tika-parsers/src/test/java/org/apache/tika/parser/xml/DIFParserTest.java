@@ -48,6 +48,7 @@ public class DIFParserTest extends TikaTest {
         assertEquals(metadata.get("DIF-Metadata_Name"),"ACADIS IDN DIF");        
 
         String content = handler.toString();
+        assertContains("Title: Zamora 2010 Using Sediment Geochemistry", content);
         assertContains("Southernmost_Latitude : 78.833", content);
         assertContains("Northernmost_Latitude : 79.016", content);
         assertContains("Westernmost_Longitude : 11.64", content);

@@ -39,6 +39,10 @@ import org.xml.sax.SAXException;
 
 public class DIFParser extends AbstractParser {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 971505521275777826L;
 	private static final Set<MediaType> SUPPORTED_TYPES = Collections
 			.unmodifiableSet(new HashSet<MediaType>(Arrays.asList(MediaType
 					.text("dif+xml"))));
@@ -58,7 +62,6 @@ public class DIFParser extends AbstractParser {
 				metadata);
 		xhtml.startDocument();
 		xhtml.startElement("p");
-		xhtml.startElement("table");
 		TaggedContentHandler tagged = new TaggedContentHandler(handler);
 		try {
 			context.getSAXParser().parse(
@@ -69,7 +72,6 @@ public class DIFParser extends AbstractParser {
 			tagged.throwIfCauseOf(e);
 			throw new TikaException("XML parse error", e);
 		} finally {
-			xhtml.endElement("table");
 			xhtml.endElement("p");
 			xhtml.endDocument();
 		}

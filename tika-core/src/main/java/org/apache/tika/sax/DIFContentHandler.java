@@ -16,8 +16,6 @@
  */
 package org.apache.tika.sax;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Stack;
 
 import org.apache.tika.metadata.Metadata;
@@ -31,15 +29,14 @@ public class DIFContentHandler extends DefaultHandler {
 
 	private static final char[] NEWLINE = new char[] { '\n' };
 	private static final char[] TABSPACE = new char[] { '\t' };
-	private static final String DELIMITER = " : ";
 	private static final Attributes EMPTY_ATTRIBUTES = new AttributesImpl();
-	
+
 	private Stack<String> treeStack;
 	private Stack<String> dataStack;
 	private final ContentHandler delegate;
 	private boolean isLeaf;
 	private Metadata metadata;
-	
+
 	public DIFContentHandler(ContentHandler delegate, Metadata metadata) {
 		this.delegate = delegate;
 		this.isLeaf = false;
@@ -58,6 +55,33 @@ public class DIFContentHandler extends DefaultHandler {
 			throws SAXException {
 		String value = (new String(ch, start, length)).toString();
 		this.dataStack.push(value);
+
+		if (this.treeStack.peek().equals("Entry_Title")) {
+			this.delegate.characters(NEWLINE, 0, NEWLINE.length);
+			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
+			this.delegate.startElement("", "h3", "h3", EMPTY_ATTRIBUTES);
+			String title = "Title: ";
+			title = title + value;
+			this.delegate.characters(title.toCharArray(), 0, title.length());
+			this.delegate.endElement("", "h3", "h3");
+		}
+		if (this.treeStack.peek().equals("Southernmost_Latitude")
+				|| this.treeStack.peek().equals("Northernmost_Latitude")
+				|| this.treeStack.peek().equals("Westernmost_Longitude")
+				|| this.treeStack.peek().equals("Easternmost_Longitude")) {
+			this.delegate.characters(NEWLINE, 0, NEWLINE.length);
+			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
+			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
+			this.delegate.startElement("", "tr", "tr", EMPTY_ATTRIBUTES);
+			this.delegate.startElement("", "td", "td", EMPTY_ATTRIBUTES);
+			String key = this.treeStack.peek() + " : ";
+			this.delegate.characters(key.toCharArray(), 0, key.length());
+			this.delegate.endElement("", "td", "td");
+			this.delegate.startElement("", "td", "td", EMPTY_ATTRIBUTES);
+			this.delegate.characters(value.toCharArray(), 0, value.length());
+			this.delegate.endElement("", "td", "td");
+			this.delegate.endElement("", "tr", "tr");
+		}
 	}
 
 	@Override
@@ -70,38 +94,31 @@ public class DIFContentHandler extends DefaultHandler {
 	public void startElement(String uri, String localName, String qName,
 			Attributes attributes) throws SAXException {
 		this.isLeaf = true;
-		this.treeStack.push(localName);
-		//delegate.characters(NEWLINE, 0, NEWLINE.length);
-	}
-	
-	private void emitData(String name, String key, String value)
-			throws SAXException {
-		if(name.equals("Southernmost_Latitude") || name.equals("Northernmost_Latitude") 
-				|| name.equals("Westernmost_Longitude") || name.equals("Easternmost_Longitude")
-				|| name.equals("Dataset_Title") || name.equals("Dataset_Creator")
-				|| name.equals("Dataset_Editor")) {
+		if (localName.equals("Spatial_Coverage")) {
 			this.delegate.characters(NEWLINE, 0, NEWLINE.length);
 			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
-			this.delegate.startElement("", "tr", "tr", EMPTY_ATTRIBUTES);
-			this.delegate.startElement("", "td", "td", EMPTY_ATTRIBUTES);
-			this.delegate.characters(key.toCharArray(), 0, key.length());
-			this.delegate.endElement("", "td", "td");
-			this.delegate.startElement("", "td", "td", EMPTY_ATTRIBUTES);
-			this.delegate.characters(DELIMITER.toCharArray(), 0, DELIMITER.length());
-			this.delegate.endElement("", "td", "td");
-			this.delegate.startElement("", "td", "td", EMPTY_ATTRIBUTES);
+			this.delegate.startElement("", "h3", "h3", EMPTY_ATTRIBUTES);
+			String value = "Geographic Data: ";
 			this.delegate.characters(value.toCharArray(), 0, value.length());
-			this.delegate.endElement("", "td", "td");
-			this.delegate.endElement("", "tr", "tr");
+			this.delegate.endElement("", "h3", "h3");
+			this.delegate.characters(NEWLINE, 0, NEWLINE.length);
+			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
+			this.delegate.startElement("", "table", "table", EMPTY_ATTRIBUTES);
 		}
+		this.treeStack.push(localName);
 	}
 
 	@Override
 	public void endElement(String uri, String localName, String qName)
 			throws SAXException {
+		if (localName.equals("Spatial_Coverage")) {
+			this.delegate.characters(NEWLINE, 0, NEWLINE.length);
+			this.delegate.characters(TABSPACE, 0, TABSPACE.length);
+			this.delegate.endElement("", "table", "table");
+		}
 		if (this.isLeaf) {
 			Stack<String> tempStack = (Stack<String>) this.treeStack.clone();
-			String key = "";			
+			String key = "";
 			while (!tempStack.isEmpty()) {
 				if (key.length() == 0) {
 					key = tempStack.pop();
@@ -110,7 +127,6 @@ public class DIFContentHandler extends DefaultHandler {
 				}
 			}
 			String value = this.dataStack.peek();
-			emitData(localName, key, value);
 			this.metadata.add(key, value);
 			this.isLeaf = false;
 		}
