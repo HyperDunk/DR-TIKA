@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import org.apache.log4j.Level;
 import org.apache.tika.batch.FileResource;
 import org.apache.tika.batch.OutputStreamFactory;
 import org.apache.tika.batch.ParserFactory;
@@ -38,7 +37,7 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.RecursiveParserWrapper;
 import org.apache.tika.sax.ContentHandlerFactory;
-import org.apache.tika.util.TikaExceptionFilter;
+import org.apache.tika.utils.ExceptionUtils;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
@@ -56,8 +55,6 @@ public class RecursiveParserWrapperFSConsumer extends AbstractFSConsumer {
     private final OutputStreamFactory fsOSFactory;
     private final TikaConfig tikaConfig;
     private String outputEncoding = "UTF-8";
-    //TODO: parameterize this
-    private TikaExceptionFilter exceptionFilter = new TikaExceptionFilter();
 
 
     public RecursiveParserWrapperFSConsumer(ArrayBlockingQueue<FileResource> queue,
@@ -120,7 +117,7 @@ public class RecursiveParserWrapperFSConsumer extends AbstractFSConsumer {
                 //take the top metadata item
                 m = metadataList.remove(0);
             }
-            String stackTrace = exceptionFilter.getStackTrace(t);
+            String stackTrace = ExceptionUtils.getFilteredStackTrace(t);
             m.add(TikaCoreProperties.TIKA_META_EXCEPTION_PREFIX+"runtime", stackTrace);
             metadataList.add(0, m);
         } finally {
@@ -133,8 +130,10 @@ public class RecursiveParserWrapperFSConsumer extends AbstractFSConsumer {
             writer = new OutputStreamWriter(os, getOutputEncoding());
             JsonMetadataList.toJson(metadataList, writer);
         } catch (Exception e) {
-            logWithResourceId(Level.ERROR, "json_ex",
-                    fileResource.getResourceId(), e);
+            //this is a stop the world kind of thing
+            logger.error("{}", getXMLifiedLogMsg(IO_OS+"json",
+                    fileResource.getResourceId(), e));
+            throw new RuntimeException(e);
         } finally {
             flushAndClose(writer);
         }

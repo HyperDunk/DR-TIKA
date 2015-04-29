@@ -21,7 +21,6 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.stream.StreamResult;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,6 +42,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,18 +54,16 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.WriterAppender;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.poi.poifs.filesystem.DirectoryEntry;
 import org.apache.poi.poifs.filesystem.DocumentEntry;
 import org.apache.poi.poifs.filesystem.DocumentInputStream;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.tika.Tika;
 import org.apache.tika.batch.BatchProcessDriverCLI;
-import org.apache.tika.batch.fs.FSBatchProcessCLI;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.CompositeDetector;
 import org.apache.tika.detect.DefaultDetector;
@@ -115,10 +113,13 @@ public class TikaCLI {
     private static final Log logger = LogFactory.getLog(TikaCLI.class);
 
     public static void main(String[] args) throws Exception {
+
         TikaCLI cli = new TikaCLI();
+        if (! isConfigured()) {
+            PropertyConfigurator.configure(cli.getClass().getResourceAsStream("/log4j.properties"));
+        }
 
         if (cli.testForHelp(args)) {
-            FSBatchProcessCLI batchProcessCLI = new FSBatchProcessCLI(args);
             cli.usage();
             return;
         } else if (cli.testForBatch(args)) {
@@ -127,10 +128,6 @@ public class TikaCLI {
             batchDriver.execute();
             return;
         }
-
-        BasicConfigurator.configure(
-                new WriterAppender(new SimpleLayout(), System.err));
-        Logger.getRootLogger().setLevel(Level.INFO);
 
         if (args.length > 0) {
             for (int i = 0; i < args.length; i++) {
@@ -154,6 +151,22 @@ public class TikaCLI {
         }
     }
 
+    private static boolean isConfigured() {
+        //Borrowed from: http://wiki.apache.org/logging-log4j/UsefulCode
+        Enumeration appenders = LogManager.getRootLogger().getAllAppenders();
+        if (appenders.hasMoreElements()) {
+            return true;
+        }
+        else {
+            Enumeration loggers = LogManager.getCurrentLoggers() ;
+            while (loggers.hasMoreElements()) {
+                Logger c = (Logger) loggers.nextElement();
+                if (c.getAllAppenders().hasMoreElements())
+                    return true;
+            }
+        }
+        return false;
+    }
     private class OutputType {
 
         public void process(
@@ -587,7 +600,7 @@ public class TikaCLI {
         out.println();
         out.println("    Simplest method.");
         out.println("    Specify two directories as args with no other args:");
-        out.println("         java -jar tika-app.jar <inputDirectory> <outputDirectory");
+        out.println("         java -jar tika-app.jar <inputDirectory> <outputDirectory>");
         out.println();
         out.println("Batch Options:");
         out.println("    -i  or --inputDir          Input directory");
@@ -610,7 +623,6 @@ public class TikaCLI {
         out.println();
         out.println("    To modify child process jvm args, prepend \"J\" as in:");
         out.println("    -JXmx4g or -JDlog4j.configuration=file:log4j.xml.");
-
     }
 
     private void version() {

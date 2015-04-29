@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.apache.tika</groupId>
     <artifactId>tika-parent</artifactId>
-    <version>1.8-SNAPSHOT</version>
+    <version>1.9-SNAPSHOT</version>
     <relativePath>../tika-parent/pom.xml</relativePath>
   </parent>
 
@@ -125,7 +125,7 @@
             <Embed-Dependency>
               tika-parsers;inline=true,
               commons-compress, xz, commons-codec, commons-csv, junrar,
-              pdfbox,fontbox,jempbox,bcmail-jdk15,bcprov-jdk15,
+              pdfbox,fontbox,jempbox,bcmail-jdk15on,bcprov-jdk15on,bcpkix-jdk15on,
               poi,poi-scratchpad,poi-ooxml,poi-ooxml-schemas,
               xmlbeans,
               tagsoup,
