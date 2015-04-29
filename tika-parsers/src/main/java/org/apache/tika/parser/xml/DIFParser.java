@@ -44,8 +44,7 @@ public class DIFParser extends AbstractParser {
 	 */
 	private static final long serialVersionUID = 971505521275777826L;
 	private static final Set<MediaType> SUPPORTED_TYPES = Collections
-			.unmodifiableSet(new HashSet<MediaType>(Arrays.asList(MediaType
-					.text("dif+xml"))));
+			.unmodifiableSet(new HashSet<MediaType>(Arrays.asList(MediaType.application("dif+xml"))));
 
 	@Override
 	public Set<MediaType> getSupportedTypes(ParseContext context) {
